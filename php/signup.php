@@ -68,3 +68,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 }
 ?>
+<head>
+<link href="../src/output.css" rel="stylesheet">
+</head>
