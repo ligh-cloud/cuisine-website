@@ -48,9 +48,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 echo "<div>Client added successfully. Redirecting...</div>";
                 echo "<script> 
                         setTimeout(function() {
-                            window.location.href = 'reservation.php';
+                            window.location.href = 'index.php';
                         }, 2000);
                       </script>";
+                      echo "<div class='bg-green-500 text-white font-bold py-2 px-4 rounded shadow-md text-center'>
+  Successfully registered
+</div>";
             } else {
                 echo "Error assigning role.";
             }

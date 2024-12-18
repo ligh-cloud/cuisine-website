@@ -51,7 +51,7 @@ create TABLE menu_dish(
     id INT AUTO_INCREMENT PRIMARY KEY,
     id_dish INT NOT NULL,
     id_menu INT NOT NULL,
-    FOREIGN KEY (id_menu) REFERENCES menu(menu_id),
+    FOREIGN KEY (id_menu) REFERENCES menu(id_menu),
     FOREIGN KEY (id_dish) REFERENCES dishes(id_dish)
 
 )
