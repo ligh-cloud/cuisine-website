@@ -15,7 +15,8 @@ CREATE TABLE reservation (
     reservation_id INT AUTO_INCREMENT PRIMARY KEY,
     date_reservation DATE NOT NULL,
     id_client INT NOT NULL,
-    FOREIGN KEY (id_client) REFERENCES user(id_client) ON DELETE CASCADE,
+    FOREIGN KEY (id_client) REFERENCES user(id_client) ,
+    FOREIGN KEY (id_menu) REFERENCES menu(id_menu) ,
     nombre_place INT NOT NULL,
     create_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     status ENUM('en attente', 'confirmer', 'annuler') DEFAULT 'en attente'
@@ -28,7 +29,7 @@ CREATE TABLE menu (
     dish_name VARCHAR(200) NOT NULL,
     number_dish INT NOT NULL,
     id_client INT NOT NULL,
-    FOREIGN KEY (id_client) REFERENCES user(id_client) ON DELETE CASCADE
+    FOREIGN KEY (id_client) REFERENCES user(id_client) 
 );
 
 CREATE TABLE dishes (
@@ -37,7 +38,7 @@ CREATE TABLE dishes (
     dish_name VARCHAR(150) NOT NULL,
     ingrediant TEXT,
     image_url MEDIUMBLOB DEFAULT 'dish.jpg',
-    FOREIGN KEY (id_menu) REFERENCES menu(id_menu) ON DELETE CASCADE
+    FOREIGN KEY (id_menu) REFERENCES menu(id_menu) 
 );
 
 
@@ -45,7 +46,7 @@ CREATE TABLE role (
     id_role INT AUTO_INCREMENT PRIMARY KEY,
     role ENUM('admin', 'user') NOT NULL,
     id_client INT NOT NULL,
-    FOREIGN KEY (id_client) REFERENCES user(id_client) ON DELETE CASCADE
+    FOREIGN KEY (id_client) REFERENCES user(id_client) 
 );
 create TABLE menu_dish(
     id INT AUTO_INCREMENT PRIMARY KEY,
