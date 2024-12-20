@@ -2,7 +2,6 @@
 require_once "db_connection.php";
 session_start();
 
-
 if (!isset($_SESSION['admin_id'])) {
     header("Location: index.php");
     exit();
@@ -12,15 +11,13 @@ if (!isset($_GET['menu_id'])) {
     echo "No menu selected.";
     exit();
 }
-if(isset($_POST["go_back"])) {
-    
+if (isset($_POST["go_back"])) {
     header("Location: admin_dashboard.php");  
     exit(); 
 }
 
 $menu_id = intval($_GET['menu_id']);
 $admin_id = $_SESSION['admin_id'];
-
 
 $menu_check_query = "SELECT menu_name FROM menu WHERE id_menu = ? AND id_client = ?";
 $menu_check_stmt = $conn->prepare($menu_check_query);
@@ -35,23 +32,21 @@ if ($menu_check_result->num_rows == 0) {
 
 $menu_name = $menu_check_result->fetch_assoc()['menu_name'];
 
+$success_message = "";
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $dish_name = htmlspecialchars(trim($_POST["dish_name"]));
     $dish_ingrediant = htmlspecialchars(trim($_POST["dish_ingrediant"]));
-
 
     if (empty($dish_name) || empty($dish_ingrediant)) {
         echo "Please fill all fields.";
         exit();
     }
 
-
     if (isset($_FILES['image']) && $_FILES['image']['error'] == 0) {
         $image_tmp_name = $_FILES['image']['tmp_name'];
         $image_data = file_get_contents($image_tmp_name);
         $image_type = mime_content_type($image_tmp_name);
-
 
         $allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
         if (!in_array($image_type, $allowed_types)) {
@@ -66,7 +61,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $stmt->bind_param("isss", $menu_id, $dish_name, $dish_ingrediant, $image_data);
 
             if ($stmt->execute()) {
-                echo "Dish added successfully to menu: " . htmlspecialchars($menu_name);
+                $success_message = "Dish added successfully to menu: " . htmlspecialchars($menu_name);
             } else {
                 echo "Error adding dish: " . $stmt->error;
             }
@@ -78,7 +73,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         echo "Please upload an image.";
     }
 }
-
 
 $dishes_query = "SELECT dish_name, ingrediant FROM dishes WHERE id_menu = ?";
 $dishes_stmt = $conn->prepare($dishes_query);
@@ -166,7 +160,20 @@ $dishes_result = $dishes_stmt->get_result();
 
 </html>
 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
+    <?php if (!empty($success_message)): ?>
+        Swal.fire({
+            title: 'Success!',
+            text: '<?php echo $success_message; ?>',
+            icon: 'success',
+            confirmButtonText: 'OK',
+            customClass: {
+                confirmButton: 'bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600'
+            }
+        });
+    <?php endif; ?>
+
     function goBack() {
         window.location.href = "admin_dashboard.php";
     }
