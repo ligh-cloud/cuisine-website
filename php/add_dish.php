@@ -48,7 +48,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $image_data = file_get_contents($image_tmp_name);
         $image_type = mime_content_type($image_tmp_name);
 
-        $allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
+        $allowed_types = ['image/jpeg','image/jpg', 'image/png'];
         if (!in_array($image_type, $allowed_types)) {
             echo "Invalid image type. Only JPEG, PNG, and GIF are allowed.";
             exit();

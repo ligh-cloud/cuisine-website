@@ -10,8 +10,8 @@ if (!isset($_SESSION['admin_id'])) {
 $admin_id = $_SESSION['admin_id'];
 
 
-$pending_query = "SELECT COUNT(*) as count FROM reservation 
-                 WHERE status = 'en attente'";
+$pending_query = "SELECT COUNT(*) as count FROM reservation WHERE status = 'en attente'";
+
 $pending_result = $conn->query($pending_query);
 $pending_count = $pending_result->fetch_assoc()['count'];
 
@@ -31,14 +31,14 @@ $clients_query = "SELECT COUNT(*) as count FROM user";
 $clients_result = $conn->query($clients_query);
 $total_clients = $clients_result->fetch_assoc()['count'];
 
-$next_reservation_query = "SELECT r.*, u.name as client_name, m.menu_name
-                         FROM reservation r 
-                         JOIN user u ON r.id_client = u.id_client 
-                         LEFT JOIN menu m ON r.id_menu = m.id_menu
-                         WHERE r.status = 'confirmer' 
-                         AND r.date_reservation >= CURDATE() 
-                         ORDER BY r.date_reservation ASC
-                         LIMIT 1";
+
+$next_reservation_query = "SELECT r.*, u.name as client_name, m.menu_name 
+FROM reservation r 
+JOIN user u ON r.id_client = u.id_client 
+LEFT JOIN menu m ON r.id_menu = m.id_menu 
+WHERE r.status = 'confirmer' AND DATE(r.date_reservation) >= CURDATE() 
+ORDER BY r.date_reservation ASC LIMIT 1";
+
 $next_reservation_result = $conn->query($next_reservation_query);
 $next_reservation = $next_reservation_result->fetch_assoc();
 
@@ -78,9 +78,13 @@ if(isset($_POST["log_out"])) {
 
 
 
-$client_query = "SELECT u.*, COALESCE(r.status, 'en attente') as status 
+$client_query = "SELECT u.*, 
+                        COALESCE(MAX(r.status), 'en attente') as status 
                  FROM user u 
-                 LEFT JOIN reservation r ON u.id_client = r.id_client";
+                 LEFT JOIN reservation r ON u.id_client = r.id_client 
+                 LEFT JOIN role ro ON u.id_client = ro.id_client 
+                 WHERE ro.role != 'admin'
+                 GROUP BY u.id_client";
 $client_stm = $conn->prepare($client_query);
 $client_stm->execute();
 $client_list = $client_stm->get_result();
