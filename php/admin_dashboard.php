@@ -99,6 +99,9 @@ $menu_result = $menu_stmt->get_result();
 
 if (isset($_POST["status_change"])) {
     $status = $_POST["status"];
+    $reservation_id = $_POST["reservation_id"]; // The reservation ID, not user ID
+
+    // Assign the appropriate status message
     if ($status == "confirmer_status") {
         $message = "confirmer";
     } else if ($status == "refuser") {
@@ -106,27 +109,14 @@ if (isset($_POST["status_change"])) {
     } else {
         $message = "en attente";
     }
-    $id_client = $_POST["id_client"];
 
-    $check_query = "SELECT id_client FROM reservation WHERE id_client = ?";
-    $check_stmt = $conn->prepare($check_query);
-    $check_stmt->bind_param("i", $id_client);
-    $check_stmt->execute();
-    $check_result = $check_stmt->get_result();
-
-    if ($check_result->num_rows > 0) {
-        $query = "UPDATE reservation SET status = ? WHERE id_client = ?";
-    } else {
-        $query = "INSERT INTO reservation (status, id_client, date_reservation) VALUES (?, ?, CURDATE())";
-    }
+    // Prepare the query to update the reservation status
+    $query = "UPDATE reservation SET status = ? WHERE id_reservation = ?";
 
     $stm = $conn->prepare($query);
-    
-    if ($check_result->num_rows > 0) {
-        $stm->bind_param("si", $message, $id_client);
-    } else {
-        $stm->bind_param("si", $message, $id_client);
-    }
+
+    // Bind the parameters and execute the query
+    $stm->bind_param("si", $message, $reservation_id);
 
     if ($stm->execute()) {
         echo "<script>alert('Status updated successfully.');</script>";
@@ -134,10 +124,10 @@ if (isset($_POST["status_change"])) {
     } else {
         echo "<script>alert('Error updating status: " . $stm->error . "');</script>";
     }
-    
+
     $stm->close();
-    $check_stmt->close();
 }
+
 ?>
 
 
@@ -286,62 +276,62 @@ if (isset($_POST["status_change"])) {
         </div>
 
 
-        <div>
-            <h2 class="text-xl font-semibold mb-3">Client List</h2>
-            <?php if ($client_list->num_rows > 0): ?>
-                <div class="overflow-x-auto">
-                    <table class="min-w-full border-collapse border border-gray-200">
-                        <thead>
-                            <tr class="bg-green-500 text-white">
-                                <th class="px-4 py-2 text-left">Client Name</th>
-                                <th class="px-4 py-2 text-left">Email</th>
-                                <th class="px-4 py-2 text-left">Current Status</th>
-                                <th class="px-4 py-2 text-left">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php while ($list = $client_list->fetch_assoc()): ?>
-                                <tr class="bg-white odd:bg-gray-50 hover:bg-gray-100">
-                                    <td class="px-4 py-2"><?php echo htmlspecialchars($list["name"]); ?></td>
-                                    <td class="px-4 py-2"><?php echo htmlspecialchars($list["email"]); ?></td>
-                                    <td class="px-4 py-2">
-                                        <?php
-                                        $status_text = "";
-                                        switch ($list["status"]) {
-                                            case "confirmer":
-                                                $status_text = "Confirmé";
-                                                break;
-                                            case "annuler":
-                                                $status_text = "Refusé";
-                                                break;
-                                            default:
-                                                $status_text = "En Attente";
-                                        }
-                                        echo $status_text;
-                                        ?>
-                                    </td>
-                                    <td class="px-4 py-2">
-                                        <form method="POST" class="flex gap-2">
-                                            <input type="hidden" name="id_client" value="<?php echo htmlspecialchars($list["id_client"]); ?>">
-                                            <select name="status" class="border border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500">
-                                                <option value="en_attente" <?php echo ($list["status"] == "en attente") ? "selected" : ""; ?>>En Attente</option>
-                                                <option value="refuser" <?php echo ($list["status"] == "annuler") ? "selected" : ""; ?>>Refuser</option>
-                                                <option value="confirmer_status" <?php echo ($list["status"] == "confirmer") ? "selected" : ""; ?>>Confirmer</option>
-                                            </select>
-                                            <button type="submit" name="status_change" class="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600">
-                                                Update
-                                            </button>
-                                        </form>
-                                    </td>
+            <div>
+                <h2 class="text-xl font-semibold mb-3">Client List</h2>
+                <?php if ($client_list->num_rows > 0): ?>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full border-collapse border border-gray-200">
+                            <thead>
+                                <tr class="bg-green-500 text-white">
+                                    <th class="px-4 py-2 text-left">Client Name</th>
+                                    <th class="px-4 py-2 text-left">Email</th>
+                                    <th class="px-4 py-2 text-left">Current Status</th>
+                                    <th class="px-4 py-2 text-left">Actions</th>
                                 </tr>
-                            <?php endwhile; ?>
-                        </tbody>
-                    </table>
-                </div>
-            <?php else: ?>
-                <p class="text-gray-500">No clients in the list.</p>
-            <?php endif; ?>
-        </div>
+                            </thead>
+                            <tbody>
+                                <?php while ($list = $client_list->fetch_assoc()): ?>
+                                    <tr class="bg-white odd:bg-gray-50 hover:bg-gray-100">
+                                        <td class="px-4 py-2"><?php echo htmlspecialchars($list["name"]); ?></td>
+                                        <td class="px-4 py-2"><?php echo htmlspecialchars($list["email"]); ?></td>
+                                        <td class="px-4 py-2">
+                                            <?php
+                                            $status_text = "";
+                                            switch ($list["status"]) {
+                                                case "confirmer":
+                                                    $status_text = "Confirmé";
+                                                    break;
+                                                case "annuler":
+                                                    $status_text = "Refusé";
+                                                    break;
+                                                default:
+                                                    $status_text = "En Attente";
+                                            }
+                                            echo $status_text;
+                                            ?>
+                                        </td>
+                                        <td class="px-4 py-2">
+                                            <form method="POST" class="flex gap-2">
+                                                <input type="hidden" name="id_client" value="<?php echo htmlspecialchars($list["id_client"]); ?>">
+                                                <select name="status" class="border border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500">
+                                                    <option value="en_attente" <?php echo ($list["status"] == "en attente") ? "selected" : ""; ?>>En Attente</option>
+                                                    <option value="refuser" <?php echo ($list["status"] == "annuler") ? "selected" : ""; ?>>Refuser</option>
+                                                    <option value="confirmer_status" <?php echo ($list["status"] == "confirmer") ? "selected" : ""; ?>>Confirmer</option>
+                                                </select>
+                                                <button type="submit" name="status_change" class="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600">
+                                                    Update
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                <?php endwhile; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php else: ?>
+                    <p class="text-gray-500">No clients in the list.</p>
+                <?php endif; ?>
+            </div>
     </div>
     <form method="POST">
     <button name="log_out" class="bg-red-600 hover:bg-red-200 w-[20vw]">
