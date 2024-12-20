@@ -1,4 +1,4 @@
-# Projet : Site Web pour un Chef Cuisinier de Renom
+# Projet : Site Web pour un Chef Cuisinier 
 
 ## Contexte du Projet
 
