@@ -2,13 +2,46 @@
 require_once "db_connection.php";
 session_start();
 
-
 if (!isset($_SESSION['admin_id'])) {
     header("Location: index.php");
     exit();
 }
 
 $admin_id = $_SESSION['admin_id'];
+
+
+$pending_query = "SELECT COUNT(*) as count FROM reservation 
+                 WHERE status = 'en attente'";
+$pending_result = $conn->query($pending_query);
+$pending_count = $pending_result->fetch_assoc()['count'];
+
+$today_query = "SELECT COUNT(*) as count FROM reservation 
+                WHERE status = 'confirmer' 
+                AND DATE(date_reservation) = CURDATE()";
+$today_result = $conn->query($today_query);
+$today_approved = $today_result->fetch_assoc()['count'];
+
+$tomorrow_query = "SELECT COUNT(*) as count FROM reservation 
+                  WHERE status = 'confirmer' 
+                  AND DATE(date_reservation) = CURDATE() + INTERVAL 1 DAY";
+$tomorrow_result = $conn->query($tomorrow_query);
+$tomorrow_approved = $tomorrow_result->fetch_assoc()['count'];
+
+$clients_query = "SELECT COUNT(*) as count FROM user";
+$clients_result = $conn->query($clients_query);
+$total_clients = $clients_result->fetch_assoc()['count'];
+
+$next_reservation_query = "SELECT r.*, u.name as client_name, m.menu_name
+                         FROM reservation r 
+                         JOIN user u ON r.id_client = u.id_client 
+                         LEFT JOIN menu m ON r.id_menu = m.id_menu
+                         WHERE r.status = 'confirmer' 
+                         AND r.date_reservation >= CURDATE() 
+                         ORDER BY r.date_reservation ASC
+                         LIMIT 1";
+$next_reservation_result = $conn->query($next_reservation_query);
+$next_reservation = $next_reservation_result->fetch_assoc();
+
 
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['menu_name'])) {
     $menu_name = htmlspecialchars(trim($_POST['menu_name']));
@@ -34,6 +67,15 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['menu_name'])) {
         echo "Menu name cannot be empty";
     }
 }
+
+if(isset($_POST["log_out"])) {
+    session_unset();
+    session_destroy();
+    header("Location: index.php");  
+    exit(); 
+}
+
+
 
 
 $client_query = "SELECT u.*, COALESCE(r.status, 'en attente') as status 
@@ -62,7 +104,6 @@ if (isset($_POST["status_change"])) {
     }
     $id_client = $_POST["id_client"];
 
-   
     $check_query = "SELECT id_client FROM reservation WHERE id_client = ?";
     $check_stmt = $conn->prepare($check_query);
     $check_stmt->bind_param("i", $id_client);
@@ -70,19 +111,21 @@ if (isset($_POST["status_change"])) {
     $check_result = $check_stmt->get_result();
 
     if ($check_result->num_rows > 0) {
-        
         $query = "UPDATE reservation SET status = ? WHERE id_client = ?";
     } else {
-       
-        $query = "INSERT INTO reservation (status, id_client) VALUES (?, ?)";
+        $query = "INSERT INTO reservation (status, id_client, date_reservation) VALUES (?, ?, CURDATE())";
     }
 
     $stm = $conn->prepare($query);
-    $stm->bind_param("si", $message, $id_client);
     
+    if ($check_result->num_rows > 0) {
+        $stm->bind_param("si", $message, $id_client);
+    } else {
+        $stm->bind_param("si", $message, $id_client);
+    }
+
     if ($stm->execute()) {
         echo "<script>alert('Status updated successfully.');</script>";
-        
         echo "<script>window.location.href = window.location.href;</script>";
     } else {
         echo "<script>alert('Error updating status: " . $stm->error . "');</script>";
@@ -92,6 +135,8 @@ if (isset($_POST["status_change"])) {
     $check_stmt->close();
 }
 ?>
+
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -105,8 +150,97 @@ if (isset($_POST["status_change"])) {
 <body class="bg-gray-100 min-h-screen flex flex-col items-center justify-center p-4">
     <div class="w-full max-w-4xl bg-white shadow-lg rounded-lg p-6 space-y-6">
         <h1 class="text-2xl font-bold text-center">Restaurant Management System</h1>
-
         
+<div class="w-full max-w-4xl mx-auto mb-8 space-y-6">
+    <h2 class="text-xl font-semibold mb-4">Dashboard Statistics</h2>
+    
+  
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+     
+        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-yellow-100 text-yellow-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">Demandes en Attente</p>
+                    <h3 class="text-xl font-bold text-gray-900"><?php echo $pending_count; ?></h3>
+                </div>
+            </div>
+        </div>
+
+      
+        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-green-100 text-green-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">Approuvées Aujourd'hui</p>
+                    <h3 class="text-xl font-bold text-gray-900"><?php echo $today_approved; ?></h3>
+                </div>
+            </div>
+        </div>
+
+     
+        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-blue-100 text-blue-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">Approuvées Demain</p>
+                    <h3 class="text-xl font-bold text-gray-900"><?php echo $tomorrow_approved; ?></h3>
+                </div>
+            </div>
+        </div>
+
+     
+        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-purple-100 text-purple-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-500">Total Clients Inscrits</p>
+                    <h3 class="text-xl font-bold text-gray-900"><?php echo $total_clients; ?></h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <h3 class="text-lg font-semibold mb-4">Prochaine Réservation</h3>
+        <?php if ($next_reservation): ?>
+        <div class="space-y-2">
+            <div class="flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-green-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                <span class="font-medium"><?php echo htmlspecialchars($next_reservation['client_name']); ?></span>
+            </div>
+            <div class="text-sm text-gray-600">
+                <p>Date: <?php echo date('d/m/Y', strtotime($next_reservation['date_reservation'])); ?></p>
+                <p>Menu: <?php echo htmlspecialchars($next_reservation['menu_name'] ?? 'Non spécifié'); ?></p>
+                <p>Nombre de places: <?php echo htmlspecialchars($next_reservation['nombre_place']); ?></p>
+            </div>
+        </div>
+        <?php else: ?>
+        <p class="text-gray-500">Aucune réservation à venir</p>
+        <?php endif; ?>
+    </div>
+</div>
+
+
         <div class="max-w-md mx-auto">
             <h2 class="text-xl font-semibold mb-3">Create New Menu</h2>
             <form method="POST" class="space-y-4">
@@ -127,7 +261,7 @@ if (isset($_POST["status_change"])) {
             </form>
         </div>
 
-        
+
         <div>
             <h2 class="text-xl font-semibold mb-3">Existing Menus</h2>
             <?php if ($menu_result->num_rows > 0): ?>
@@ -147,7 +281,7 @@ if (isset($_POST["status_change"])) {
             <?php endif; ?>
         </div>
 
-       
+
         <div>
             <h2 class="text-xl font-semibold mb-3">Client List</h2>
             <?php if ($client_list->num_rows > 0): ?>
@@ -167,9 +301,9 @@ if (isset($_POST["status_change"])) {
                                     <td class="px-4 py-2"><?php echo htmlspecialchars($list["name"]); ?></td>
                                     <td class="px-4 py-2"><?php echo htmlspecialchars($list["email"]); ?></td>
                                     <td class="px-4 py-2">
-                                        <?php 
+                                        <?php
                                         $status_text = "";
-                                        switch($list["status"]) {
+                                        switch ($list["status"]) {
                                             case "confirmer":
                                                 $status_text = "Confirmé";
                                                 break;
@@ -205,6 +339,12 @@ if (isset($_POST["status_change"])) {
             <?php endif; ?>
         </div>
     </div>
+    <form method="POST">
+    <button name="log_out" class="bg-red-600 hover:bg-red-200 w-[20vw]">
+        log out
+    </button>
+    
+    </form>
 </body>
 
 </html>

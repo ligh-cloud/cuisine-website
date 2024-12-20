@@ -12,6 +12,11 @@ if (!isset($_GET['menu_id'])) {
     echo "No menu selected.";
     exit();
 }
+if(isset($_POST["go_back"])) {
+    
+    header("Location: admin_dashboard.php");  
+    exit(); 
+}
 
 $menu_id = intval($_GET['menu_id']);
 $admin_id = $_SESSION['admin_id'];
@@ -151,6 +156,11 @@ $dishes_result = $dishes_stmt->get_result();
         
         </div>
     </div>
+    <form method="POST" >
+    <button name="go_back">
+        go back
+    </button>
+    </form>
 
 </body>
 

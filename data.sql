@@ -52,14 +52,8 @@ CREATE TABLE role (
     id_client INT NOT NULL,
     FOREIGN KEY (id_client) REFERENCES user(id_client)
 );
-create TABLE menu_dish(
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    id_dish INT NOT NULL,
-    id_menu INT NOT NULL,
-    FOREIGN KEY (id_menu) REFERENCES menu(id_menu),
-    FOREIGN KEY (id_dish) REFERENCES dishes(id_dish)
 
-)
+
 
 
 

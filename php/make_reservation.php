@@ -167,7 +167,7 @@ while ($row = $result->fetch_assoc()) {
     }
 }
 
-    
+
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     try {
         $reservation_date = $_POST['reservation_date'];
@@ -226,5 +226,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         error_log("Reservation Error: " . $e->getMessage());
     }
 }
+
+
 ?>
 
